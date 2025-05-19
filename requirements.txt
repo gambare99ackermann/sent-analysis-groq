@@ -1,4 +1,4 @@
-langchain==0.1.14
+confluent_kafka
+langchain
 langchain-groq
-confluent-kafka
 python-dotenv

@@ -42,9 +42,9 @@ producer = Producer({
     'sasl.password': KAFKA_PASSWORD
 })
 
-# === LLM Setup ===
+# === LLM Setup (Groq Only) ===
 groq_primary_llm = ChatGroq(
-    model_name="mistral-7b-instruct",
+    model_name="llama3-8b-8192",
     temperature=0.3,
     groq_api_key=GROQ_API_KEY
 )
@@ -118,7 +118,7 @@ def classify_and_generate(notes):
                 return {
                     "Caller Notes": notes,
                     "Sentiment Label": "Unknown",
-                    "Reason": f"❌ All LLMs failed for sentiment: {e3}",
+                    "Reason": f"❌ All Groq LLMs failed for sentiment: {e3}",
                     "Next Action Items": "❌ Skipped due to classification error"
                 }
 
@@ -142,7 +142,7 @@ def classify_and_generate(notes):
             try:
                 action_items = groq_fallback_llm_2.invoke(prompt).content.strip()
             except Exception as e3:
-                action_items = f"❌ All LLMs failed for action generation: {e3}"
+                action_items = f"❌ All Groq LLMs failed for action generation: {e3}"
 
     return {
         "Caller Notes": notes,

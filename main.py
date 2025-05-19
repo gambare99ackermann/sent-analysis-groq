@@ -44,13 +44,19 @@ producer = Producer({
 
 # === LLM Setup ===
 groq_primary_llm = ChatGroq(
-    model_name="llama3-8b-8192",
+    model_name="mistral-7b-instruct",
     temperature=0.3,
     groq_api_key=GROQ_API_KEY
 )
 
 groq_fallback_llm = ChatGroq(
-    model_name="mistral-7b-instruct",
+    model_name="mixtral-8x7b-32768",
+    temperature=0.3,
+    groq_api_key=GROQ_API_KEY
+)
+
+groq_fallback_llm_2 = ChatGroq(
+    model_name="gemma-7b-it",
     temperature=0.3,
     groq_api_key=GROQ_API_KEY
 )
@@ -101,16 +107,20 @@ def classify_and_generate(notes):
     try:
         sentiment = groq_primary_llm.invoke(sentiment_prompt.format(notes=notes)).content.strip()
     except Exception as e:
-        print(f"⚠️ Primary sentiment LLM failed: {e}\n🔁 Using fallback.")
+        print(f"⚠️ Primary sentiment LLM failed: {e}\n🔁 Trying first fallback.")
         try:
             sentiment = groq_fallback_llm.invoke(sentiment_prompt.format(notes=notes)).content.strip()
         except Exception as e2:
-            return {
-                "Caller Notes": notes,
-                "Sentiment Label": "Unknown",
-                "Reason": f"❌ Both LLMs failed for sentiment: {e2}",
-                "Next Action Items": "❌ Skipped due to classification error"
-            }
+            print(f"⚠️ First fallback failed: {e2}\n🔁 Trying second fallback.")
+            try:
+                sentiment = groq_fallback_llm_2.invoke(sentiment_prompt.format(notes=notes)).content.strip()
+            except Exception as e3:
+                return {
+                    "Caller Notes": notes,
+                    "Sentiment Label": "Unknown",
+                    "Reason": f"❌ All LLMs failed for sentiment: {e3}",
+                    "Next Action Items": "❌ Skipped due to classification error"
+                }
 
     if sentiment.lower().startswith("negative"):
         return {
@@ -124,11 +134,15 @@ def classify_and_generate(notes):
     try:
         action_items = groq_primary_llm.invoke(prompt).content.strip()
     except Exception as e:
-        print(f"⚠️ Primary action LLM failed: {e}\n🔁 Using fallback.")
+        print(f"⚠️ Primary action LLM failed: {e}\n🔁 Trying first fallback.")
         try:
             action_items = groq_fallback_llm.invoke(prompt).content.strip()
         except Exception as e2:
-            action_items = f"❌ Both LLMs failed for action generation: {e2}"
+            print(f"⚠️ First fallback failed: {e2}\n🔁 Trying second fallback.")
+            try:
+                action_items = groq_fallback_llm_2.invoke(prompt).content.strip()
+            except Exception as e3:
+                action_items = f"❌ All LLMs failed for action generation: {e3}"
 
     return {
         "Caller Notes": notes,
